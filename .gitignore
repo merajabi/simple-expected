@@ -1,0 +1,4 @@
+app/build/
+app/CMakeUserPresets.json
+venv/
+doxy/

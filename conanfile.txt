@@ -1,0 +1,11 @@
+[requires]
+
+[generators]
+CMakeDeps
+CMakeToolchain
+
+[tool_requires]
+cmake/[>=3.21.0]
+ninja/1.11.1
+
+[options]

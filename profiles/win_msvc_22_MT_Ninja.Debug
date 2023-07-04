@@ -1,0 +1,19 @@
+[settings]
+arch=x86_64
+build_type=Debug
+compiler=msvc
+compiler.cppstd=20
+compiler.runtime=static
+compiler.version=193
+os=Windows
+
+[options]
+
+[conf]
+tools.cmake.cmaketoolchain:generator=Ninja
+tools.microsoft.msbuild:installation_path=C:\Program Files\Microsoft Visual Studio\2022\Professional\VC\Tools\MSVC\14.35.32215\bin\HostX64\x64\
+#tools.microsoft.msbuild:verbosity=Normal
+tools.env.virtualenv:powershell=True
+#tools.build:cxxflags=[ "/utf-8" ]
+
+
