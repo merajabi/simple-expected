@@ -5,8 +5,11 @@ template <class E>
 class SimpleUnexpected
 {
 public:
-	SimpleUnexpected() = default;
-	SimpleUnexpected(const E& e):myError(e){}
+	SimpleUnexpected()
+		:myError(E{}){}
+
+	SimpleUnexpected(const E& e)
+		:myError(e){}
 
 	const E& error() const
 	{
@@ -20,10 +23,33 @@ private:
 template< class T, class E >
 class SimpleExpected {
 public:
-	SimpleExpected() = delete;
-	SimpleExpected(const T& x):myHasError(false),myError(E{}),myIsMoved(false),myValue(x){}
-	SimpleExpected(const SimpleUnexpected<E>& e):myHasError(true),myError(e),myIsMoved(false),myValue(T{}){}
-	SimpleExpected(T&& x):myHasError(false),myError(E{}),myIsMoved(false),myValue(std::move(x)){}
+	SimpleExpected()
+		:myHasError(false)
+		,myError(E{})
+		,myIsMoved(false)
+		,myValue(T{})
+		{}
+
+	SimpleExpected(const T& x)
+		:myHasError(false)
+		,myError(E{})
+		,myIsMoved(false)
+		,myValue(x)
+		{}
+
+	SimpleExpected(const SimpleUnexpected<E>& e)
+		:myHasError(true)
+		,myError(e)
+		,myIsMoved(false)
+		,myValue(T{})
+		{}
+
+	SimpleExpected(T&& x)
+		:myHasError(false)
+		,myError(E{})
+		,myIsMoved(false)
+		,myValue(std::move(x))
+		{}
 
 	operator bool () const
 	{
@@ -86,24 +112,7 @@ public:
 
 		return myValue;		
 	}
-/*
-	T&& value_or(const T& tempValue) &&
-	{
-		if(myIsMoved)
-		{
-			 throw std::logic_error("No Value");
-		}
 
-		if(myHasError)
-		{
-			T temp{tempValue};
-			return std::move(temp);
-		}
-
-		myIsMoved = true;
-		return std::move(myValue);		
-	}
-*/
 	T&& value_or(T&& tempValue) &&
 	{
 		if(myIsMoved)
@@ -135,3 +144,50 @@ private:
 	bool myIsMoved;
 	T myValue;
 };
+
+template<class E>
+class SimpleExpected<void,E> {
+public:
+	SimpleExpected()
+		:myHasError(false)
+		,myError()
+		{}
+
+	SimpleExpected(const SimpleUnexpected<E>& e)
+		:myHasError(true)
+		,myError(e)
+		{}
+
+
+	operator bool () const
+	{
+		return !myHasError;
+	}
+
+	bool has_value() const
+	{
+		return !myHasError;
+	}
+
+	void value() const
+	{
+		if(myHasError)
+		{
+			 throw std::logic_error("No Error");
+		}
+	}
+
+	const E& error() const
+	{
+		if(!myHasError)
+		{
+			 throw std::logic_error("No Error");
+		}
+		return myError.error();
+	}
+
+private:
+	const bool myHasError;
+	const SimpleUnexpected<E> myError;
+};
+
