@@ -24,6 +24,10 @@ target_include_directories(LibSimpleExpected
 		"${CMAKE_CURRENT_SOURCE_DIR}/src"
 	)
 
+set_target_properties(LibSimpleExpected 
+	PROPERTIES 
+	LINKER_LANGUAGE CXX)
+
 # Enable testing functionality. Andoni: Do not use "enable_testing()"
 include(CTest)
 add_subdirectory(tests)
