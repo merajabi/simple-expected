@@ -1,4 +1,6 @@
-app/build/
-app/CMakeUserPresets.json
+build/
 venv/
 doxy/
+.conan/
+CMakeUserPresets.json
+
