@@ -1,10 +1,9 @@
 [requires]
-gtest/1.11.0
+
+[tool_requires]
+cmake/[>=3.15 <=3.29]
 
 [generators]
 CMakeDeps
 CMakeToolchain
 
-[tool_requires]
-
-[options]
