@@ -1,331 +1,141 @@
-
-#include "SimpleExpected.h"
-
 #include <gtest/gtest.h>
+
+#include "mr/expected.hpp"
 
 #include <iostream>
 #include <vector>
+#include <string>
 
-enum class TestError
-{
-    NO_EQUAL_SIZE,
-	DIVISION_BY_ZERO
+namespace {
+struct Point {
+    std::vector<int> coordinates;
+    std::string name;
+    
+    template <class... Args>
+    Point(std::initializer_list<int> coords, Args&&... name_args)
+        : coordinates(coords),
+          name(std::forward<Args>(name_args)...) {}
 };
 
-class TestValue {
-public:
-	TestValue()
-	{ 
-		myDefaultConstructorCounter++; 
-	}
-
-	TestValue(const TestValue& t)
-		:myVector(t.myVector)
-	{ 
-		myCopyConstructorCounter++;
-	}
-
-	TestValue(TestValue&& t)
-		:myVector(std::move(t.myVector))
-	{ 
-		myMoveConstructorCounter++;
-	}
-
-	~TestValue()
-	{ 
-		myDestructorCounter++;
-	}
-
-	TestValue& operator=(const TestValue& t) = delete;
-	TestValue& operator=(TestValue&& t) = delete;
-
-	static void ResetCounters()
-	{
-		myDefaultConstructorCounter = 0;
-		myCopyConstructorCounter = 0;
-		myMoveConstructorCounter = 0;
-		myDestructorCounter = 0;
-	}
-
-	std::vector<int> myVector;
-
-	static int myDefaultConstructorCounter;
-	static int myCopyConstructorCounter;
-	static int myMoveConstructorCounter;
-	static int myDestructorCounter;
+struct move_detector {
+    move_detector() = default;
+    move_detector(move_detector&& rhs) {
+        rhs.been_moved = true;
+    }
+    bool been_moved = false;
 };
 
-int TestValue::myDefaultConstructorCounter = 0;
-int TestValue::myCopyConstructorCounter = 0;
-int TestValue::myMoveConstructorCounter = 0;
-int TestValue::myDestructorCounter = 0;
+} // namespace
 
-class SimpleExpectedTests : public ::testing::Test 
-{
-protected:
-	void SetUp() override 
-	{
-		TestValue::ResetCounters();
-	}
-
-	void TearDown() override 
-	{
-	}
-};
-
-SimpleExpected<void,int>
-VoidPositive(int x)
-{
-	if( x < 0)
-	{
-		return SimpleUnexpected(x);
-	}
-	return SimpleExpected<void,int>{};
+TEST(ConstructorsTest, DefaultConstructor) {
+    mr::expected<int, int> e;
+    EXPECT_TRUE(e.has_value());
+    EXPECT_EQ(e.value(), 0);
 }
 
-TEST_F(SimpleExpectedTests, ShouldBail_WhenVoidPositiveCalledWithNegative) 
-{
-	auto expexted = VoidPositive(-1);
-	if(!expexted)
-	{
-		const auto c = expexted.error();
-		EXPECT_EQ(c,-1);
-		EXPECT_THROW({ expexted.value();}, std::logic_error);
-	}
+TEST(ConstructorsTest, MakeUnexpected) {
+    mr::expected<int, int> e = mr::make_unexpected(0);
+    EXPECT_FALSE(e.has_value());
+    EXPECT_EQ(e.error(), 0);
 }
 
-TEST_F(SimpleExpectedTests, ShouldSucceed_WhenVoidPositiveCalledWithPositive) 
-{
-   	auto expexted = VoidPositive(1);
-	if(expexted)
-	{
-		expexted.value();
-		EXPECT_THROW({ expexted.error();}, std::logic_error);
-	}
+TEST(ConstructorsTest, InPlaceInitializerList) {
+    mr::expected<std::vector<int>, int> e(mr::in_place, {0, 1});
+    EXPECT_TRUE(e.has_value());
+    EXPECT_EQ((*e)[0], 0);
+    EXPECT_EQ((*e)[1], 1);
 }
 
-
-SimpleExpected<int,int>
-IntPositive(int x)
-{
-	if( x < 0)
-	{
-		return SimpleUnexpected(x);
-	}
-	return SimpleExpected<int,int>{};
+TEST(ConstructorsTest, VoidIntDefault) {
+    mr::expected<void, int> e;
+    EXPECT_TRUE(e.has_value());
 }
 
-TEST_F(SimpleExpectedTests, ShouldBail_WhenIntPositiveCalledWithNegative) 
-{
-	auto expexted = IntPositive(-1);
-	EXPECT_FALSE(expexted);
-	if(!expexted)
-	{
-		const auto c = expexted.error();
-		EXPECT_EQ(c,-1);
-		EXPECT_THROW({ expexted.value();}, std::logic_error);
-	}
+TEST(ConstructorsTest, VoidIntUnexpected) {
+    mr::expected<void, int> e(mr::unexpect, 42);
+    EXPECT_FALSE(e.has_value());
+    EXPECT_EQ(e.error(), 42);
 }
 
-TEST_F(SimpleExpectedTests, ShouldSucceed_WhenIntPositiveCalledWithPositive) 
-{
-	auto expexted = IntPositive(1);
-	EXPECT_TRUE(expexted);
-	if(expexted)
-	{
-		const auto c = expexted.value();
-		EXPECT_EQ(c,0);
-		EXPECT_THROW({ expexted.error();}, std::logic_error);
-	}
+TEST(AssignmentTest, SimpleAssignment) {
+    mr::expected<int, int> e1 = 42;
+    mr::expected<int, int> e4 = mr::make_unexpected(42);
+    
+    // Value to error
+    e1 = e4;
+    EXPECT_FALSE(e1.has_value());
+    EXPECT_EQ(e1.error(), 42);
+    
+    // Error to value
+    e1 = 17;
+    EXPECT_TRUE(e1.has_value());
+    EXPECT_EQ(e1.value(), 17);
 }
 
-
-SimpleExpected<int,TestError>
-Div(int x,int y)
-{
-	if(y == 0)
-	{
-		return SimpleUnexpected(TestError::DIVISION_BY_ZERO);
-	}
-	return x/y;
+TEST(ExpectedObserverTests, ValueAndErrorAccessors) {
+    mr::expected<int, int> o1 = 42;
+    mr::expected<int, int> o2{mr::unexpect, 0};
+    EXPECT_EQ(*o1, 42);
+    EXPECT_EQ(o1.value(), 42);
+    EXPECT_EQ(o2.value_or(42), 42);
+    EXPECT_EQ(o2.error(), 0);
 }
 
-TEST_F(SimpleExpectedTests, ShouldBail_WhenDivisionByZero) 
-{
-	auto expexted = Div(4,0);
-	EXPECT_FALSE(expexted);
-	if(!expexted)
-	{
-		const auto c = expexted.error();
-		EXPECT_EQ(c,TestError::DIVISION_BY_ZERO);
-		EXPECT_THROW({ expexted.value();}, std::logic_error);
-	}
+TEST(ExpectedObserverTests, MoveDetectorBehavior) {
+    mr::expected<move_detector, int> o4{mr::in_place};
+    move_detector o5 = std::move(o4).value();
+    EXPECT_TRUE(o4->been_moved);
 }
 
-TEST_F(SimpleExpectedTests, ShouldSucceed_WhenOrValueCalledWithError) 
-{
-	auto expexted = Div(4,0);
-	EXPECT_FALSE(expexted);
-	if(!expexted)
-	{
-		const auto c = expexted.value_or(1);
-		EXPECT_EQ(c,1);
-	}
+TEST(ExpectedEmplaceTests, EmplacePoint) {
+    mr::expected<Point, int> e = mr::make_unexpected(0);
+    e.emplace({1, 2}, "origin");  // init list + variadic args
+    
+    ASSERT_TRUE(e.has_value());
+    ASSERT_EQ(e->coordinates[0], 1);
+    ASSERT_EQ(e->coordinates[1], 2); 
+    ASSERT_EQ(e->name, "origin");
 }
 
-TEST_F(SimpleExpectedTests, ShouldSucceed_WhenOrValueCalledOnDivisible) 
-{
-	auto expexted = Div(4,2);
-	EXPECT_TRUE(expexted);
-	if(expexted)
-	{
-		const auto c = expexted.value_or(1);
-		EXPECT_EQ(c,2);
-		EXPECT_THROW({ expexted.error();}, std::logic_error);
-	}
+TEST(ExpectedEmplaceTests, EmplacePointError) {
+    mr::expected<Point, int> e2 = mr::make_unexpected(42);
+    ASSERT_FALSE(e2.has_value());
+    ASSERT_EQ(e2.error(), 42);
+    
+    // Test emplace after error
+    e2.emplace({0, 0}, "origin");
+    ASSERT_TRUE(e2.has_value());
 }
 
-SimpleExpected<TestValue,TestError>
-Concatenate(TestValue x,TestValue y)
-{
-	if(x.myVector.size() != y.myVector.size())
-	{
-		return SimpleUnexpected(TestError::NO_EQUAL_SIZE);
-	}
-
-	TestValue z = x;
-	z.myVector.insert(z.myVector.end(),y.myVector.begin(),y.myVector.end());
-	return z;
+TEST(TrivialityTest, ExpectedIntInt) {
+    EXPECT_TRUE((std::is_trivially_copy_constructible<mr::expected<int,int>>::value));
+    EXPECT_TRUE((std::is_trivially_move_constructible<mr::expected<int,int>>::value));
 }
 
-TEST_F(SimpleExpectedTests, ShouldSucceed_WhenReturnValueByCopy) 
-{
-	{
-		TestValue a;
-		a.myVector.push_back(1);
-		TestValue b;
-		b.myVector.push_back(2);
-
-		auto expexted = Concatenate(a,b);
-		EXPECT_TRUE(expexted);
-		if(expexted)
-		{
-			const auto c = expexted.value();
-			EXPECT_EQ(c.myVector,(std::vector{1,2}));
-		}
-	}
-	EXPECT_EQ(TestValue::myDefaultConstructorCounter,2);
-	EXPECT_EQ(TestValue::myCopyConstructorCounter,4);
-	EXPECT_EQ(TestValue::myMoveConstructorCounter,1);
-	EXPECT_EQ(TestValue::myDestructorCounter,TestValue::myDefaultConstructorCounter + TestValue::myCopyConstructorCounter + TestValue::myMoveConstructorCounter);
+TEST(DeletionTest, CopyDeletedMoveDefaulted) {
+    struct T {
+        T(const T&)=delete;
+        T(T&&)=default;
+        T& operator=(const T&)=delete;
+        T& operator=(T&&)=default;
+    };
+    EXPECT_FALSE((std::is_copy_constructible<mr::expected<T,int>>::value));
+    EXPECT_TRUE((std::is_move_constructible<mr::expected<T,int>>::value));
 }
 
-TEST_F(SimpleExpectedTests, ShouldSucceed_WhenReturnValueByMove) 
-{
-	{
-		TestValue a;
-		a.myVector.push_back(1);
-		TestValue b;
-		b.myVector.push_back(2);
-
-		auto expexted = Concatenate(a,b);
-		EXPECT_TRUE(expexted);
-		if(expexted)
-		{
-			const auto c = std::move(expexted).value();
-			EXPECT_EQ(c.myVector,(std::vector{1,2}));
-		}
-	}
-	EXPECT_EQ(TestValue::myDefaultConstructorCounter,2);
-	EXPECT_EQ(TestValue::myCopyConstructorCounter,3);
-	EXPECT_EQ(TestValue::myMoveConstructorCounter,2);
-	EXPECT_EQ(TestValue::myDestructorCounter,TestValue::myDefaultConstructorCounter + TestValue::myCopyConstructorCounter + TestValue::myMoveConstructorCounter);
+TEST(DeletionTest, NotDefaultConstructible) {
+    struct T { T(int){} };
+    EXPECT_FALSE((std::is_default_constructible<mr::expected<T,int>>::value));
 }
 
-TEST_F(SimpleExpectedTests, ShouldBail_WhenReturnValueAfterMove) 
-{
-	{
-		TestValue a;
-		a.myVector.push_back(1);
-		TestValue b;
-		b.myVector.push_back(2);
-
-		auto expexted = Concatenate(a,b);
-		EXPECT_TRUE(expexted);
-		if(expexted)
-		{
-			const auto c = std::move(expexted).value();
-			EXPECT_EQ(c.myVector,(std::vector{1,2}));
-
-			EXPECT_THROW({ expexted.value();}, std::logic_error);
-			EXPECT_THROW({ std::move(expexted).value();}, std::logic_error);
-		}
-	}
-	EXPECT_EQ(TestValue::myDefaultConstructorCounter,2);
-	EXPECT_EQ(TestValue::myCopyConstructorCounter,3);
-	EXPECT_EQ(TestValue::myMoveConstructorCounter,2);
-	EXPECT_EQ(TestValue::myDestructorCounter,TestValue::myDefaultConstructorCounter + TestValue::myCopyConstructorCounter + TestValue::myMoveConstructorCounter);
+TEST(ExpectedAssertionTests, AccessErrorOnValueThrows) {
+    mr::expected<int, int> o1 = 42;
+    EXPECT_THROW({ (void)o1.error(); }, std::logic_error);
 }
 
-TEST_F(SimpleExpectedTests, ShouldBail_WhenReturnOrValueAfterMove) 
-{
-	{
-		TestValue a;
-		a.myVector.push_back(1);
-		TestValue b;
-		b.myVector.push_back(2);
-
-		auto functor = [](){
-				TestValue x;
-				x.myVector.push_back(1);
-				return x;
-			};
-
-		auto expexted = Concatenate(a,b);
-		EXPECT_TRUE(expexted);
-		if(expexted)
-		{
-			const auto c = std::move(expexted).value_or(functor());
-			EXPECT_EQ(c.myVector,(std::vector{1,2}));
-
-			EXPECT_THROW({ expexted.value_or(functor());}, std::logic_error);
-			EXPECT_THROW({ std::move(expexted).value_or(functor());}, std::logic_error);
-		}
-	}
-	EXPECT_EQ(TestValue::myDefaultConstructorCounter,5);
-	EXPECT_EQ(TestValue::myCopyConstructorCounter,3);
-	EXPECT_EQ(TestValue::myMoveConstructorCounter,2);
-	EXPECT_EQ(TestValue::myDestructorCounter,TestValue::myDefaultConstructorCounter + TestValue::myCopyConstructorCounter + TestValue::myMoveConstructorCounter);
+TEST(ExpectedAssertionTests, AccessValueOnErrorThrows) {
+    mr::expected<int, int> o2{mr::unexpect, 0};
+    EXPECT_THROW({ (void)*o2; }, std::logic_error);
 }
-TEST_F(SimpleExpectedTests, ShouldSucceed_WhenReturnOrValueAfterMoveWithError) 
-{
-	{
-		TestValue a;
-		TestValue b;
-		b.myVector.push_back(2);
-
-		auto functor = [](){
-				TestValue x;
-				x.myVector.push_back(1);
-				return x;
-			};
-
-		auto expexted = Concatenate(a,b);
-		EXPECT_FALSE(expexted);
-		if(!expexted)
-		{
-			const auto c = std::move(expexted).value_or(functor());
-			EXPECT_EQ(c.myVector,(std::vector{1}));
-
-			const auto d = std::move(expexted).value_or(functor());
-			EXPECT_EQ(d.myVector,(std::vector{1}));
-		}
-	}
-	EXPECT_EQ(TestValue::myDefaultConstructorCounter,5);
-	EXPECT_EQ(TestValue::myCopyConstructorCounter,2);
-	EXPECT_EQ(TestValue::myMoveConstructorCounter,2);
-	EXPECT_EQ(TestValue::myDestructorCounter,TestValue::myDefaultConstructorCounter + TestValue::myCopyConstructorCounter + TestValue::myMoveConstructorCounter);
-}
-
 
 

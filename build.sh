@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# python3.10  -m venv venv
+
+source venv/bin/activate
+ 
 # Step 1: Install tools
 conan install conanfile_tools.txt --output-folder=build/tools --build=missing --profile:build=$1 --profile:host=$1
 
