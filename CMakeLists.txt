@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15)
 project(SimpleExpected VERSION 0.1.0 LANGUAGES CXX)
 
-option(BUILD_TESTING "Build tests" ON)
+option(BUILD_TESTING "Build tests" OFF)
 
 # Set C++ standard (modify if needed)
 set(CMAKE_CXX_STANDARD 17)
