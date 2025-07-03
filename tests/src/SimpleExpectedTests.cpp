@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "mr/expected.hpp"
+
+#include <gtest/gtest.h>
 
 #include <iostream>
 #include <vector>
@@ -85,6 +85,7 @@ TEST(ExpectedObserverTests, MoveDetectorBehavior) {
     mr::expected<move_detector, int> o4{mr::in_place};
     move_detector o5 = std::move(o4).value();
     EXPECT_TRUE(o4->been_moved);
+    EXPECT_FALSE(o5.been_moved);
 }
 
 TEST(ExpectedEmplaceTests, EmplacePoint) {

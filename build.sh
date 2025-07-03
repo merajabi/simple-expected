@@ -1,5 +1,10 @@
 #!/bin/bash
 
+# direct build
+# g++-13 -std=c++17 -I include/ tests/src/MoreExpectedTests.cpp -pthread -l gtest -l gtest_main
+
+rm -r build/
+
 # python3.10  -m venv venv
 
 source venv/bin/activate
@@ -27,5 +32,6 @@ conan build . --output-folder=build --profile:build=$1 --profile:host=$1
 #conan test . SimpleExpected/1.0@ --profile:build=$1 --profile:host=$1 
 ctest --test-dir build/build/Debug/
 
+# Step 7: Create
 conan create . -s build_type=Debug --profile:build=$1 --profile:host=$1 
 

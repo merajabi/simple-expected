@@ -1,7 +1,7 @@
 #pragma once
+#include <type_traits>
 #include <stdexcept>
 #include <utility>
-#include <type_traits>
 #include <variant>
 #include <initializer_list>
 
