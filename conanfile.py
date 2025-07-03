@@ -1,15 +1,16 @@
+import os
 from conan import ConanFile
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.env import VirtualBuildEnv
 from conan.tools.files import copy
-import os
+
 
 class MyPackageConan(ConanFile):
     name = "simple_expected"
     version = "1.0"
     settings = "os", "compiler", "build_type", "arch"
     # generators = "CMakeDeps", "CMakeToolchain", "VirtualBuildEnv"
-    exports_sources = "include/*", "CMakeLists.txt"
+    exports_sources = "include/*", "tests/*", "CMakeLists.txt"
     no_copy_source = True  # For header-only
 
     def layout(self):
