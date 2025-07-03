@@ -40,5 +40,5 @@ build.sh profiles/linux_gcc_13_Make.Debug
 
 ## License
 
-MIT License - I want others to benefit from this work freely.
+MIT License
 
